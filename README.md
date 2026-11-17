@@ -47,27 +47,27 @@ The movie is played at 10 frames per second, so 50 frames make a 5-second movie 
 
 ## Runtime results
 
-Runtimes were measured with bash's `time` (wall-clock seconds) using `run_timing.sh`, which runs `mandelmovie` once for each process count and saves the results to `timing.csv`. `plot_timing.py` draws the graph from that file.
+Runtimes were measured with bash's `time` command, using the `real` (wall-clock) time. `mandelmovie` was run once for each process count, generating all 50 frames each time.
 
-| Child processes | Runtime (s) |
-|---|---|
-| 1 | 59.7 |
-| 2 | 30.6 |
-| 5 | 30.0 |
-| 10 | 30.2 |
-| 20 | 30.0 |
-| 50 | 30.2 |
+| Child processes | Real time (s) | User time (s) | Speedup vs 1 |
+|---|---|---|---|
+| 1 | 78.9 | 78.6 | 1.0× |
+| 2 | 36.8 | 72.9 | 2.1× |
+| 5 | 17.1 | 83.9 | 4.6× |
+| 10 | 9.1 | 86.3 | 8.7× |
+| 20 | 8.0 | 99.4 | 9.9× |
+| 50 | 8.5 | 104.4 | 9.3× |
 
 ![Runtime vs number of processes](runtime_graph.png)
 
 ## Discussion
 
-Going from 1 to 2 processes almost exactly halved the runtime, from 59.7 s to 30.6 s. After that, adding more processes made no difference: 5, 10, 20, and even 50 processes all finished in about 30 seconds.
+Using more processes made the program much faster at first. One process took 78.9 s, and every step up to 10 processes cut the runtime nearly in proportion: 2 processes ran about 2.1× faster, 5 ran 4.6× faster, and 10 ran 8.7× faster, finishing in 9.1 s. Going from 10 to 20 processes, though, only saved about one more second (9.1 s to 8.0 s), and 50 processes (one per frame) was actually slightly *slower* than 20, at 8.5 s. The curve flattens out and then starts to tick back up.
 
-The machine these timings were taken on has 2 CPU cores, which explains the shape of the graph. Rendering a frame is purely CPU-bound work with almost no file or network waiting, so each running child keeps one core fully busy. With 2 children, both cores are working all the time, and the work is done in half the time. With more than 2 children, the extra processes have no free core to run on. The operating system just takes turns running them on the same 2 cores, so the total amount of work per core stays the same and the runtime stays flat.
+Rendering a frame is purely CPU-bound work, with almost no time spent waiting on files or the network. Each running child keeps one CPU core busy, so as long as there are idle cores, each added process adds another core's worth of work, and the runtime drops in proportion. Once the number of processes passes the number of cores the machine can actually run at once, the extra processes have nowhere new to run. The operating system just takes turns running them on the cores it already has, so the runtime stops improving.
 
-So using more processes does **not** always speed things up. The speedup stops once the number of processes reaches the number of cores. Past that point, extra processes cost a little more in context switching and memory but gain nothing, which is why the 10 and 50 process runs were very slightly slower than the 5 process run. Fork and exec overhead is small compared with the hundreds of milliseconds each frame takes to render, so it does not show up in these numbers.
+The `user` time shows the same thing from another angle. It is the total CPU time added up across all processes, and the total work (50 frames) never changes. From 1 to 10 processes, it stays fairly steady at roughly 73–86 s. At 20 processes it jumps to 99 s, and at 50 it reaches 104 s, even though the wall-clock time barely improved or got worse. That means each process was getting less work done per second of CPU time. This is what happens when processes are competing for the same physical hardware: with hyperthreading, two logical cores share one physical core and slow each other down, and extra context switching adds a little more overhead. The `sys` time also rose steadily, from 0.27 s with 1 process to 0.87 s with 20 and 1.38 s with 50, which fits the extra work the kernel does creating, scheduling, and switching between more processes.
 
-One more detail affects how well the work spreads out. Frames are not equal in cost: the deeper frames near the end of the zoom contain more of the detailed boundary of the set, so they need more iterations per pixel and take longer. Because the parent hands out a new frame as soon as any child finishes, a core that finished a cheap frame immediately picks up the next one. This keeps both cores busy and is why the 2-process run came so close to a perfect 2× speedup.
+So using more processes does **not** always speed things up. The speedup is close to linear until the process count reaches the number of available cores, and beyond that it levels off. Past that point, extra processes cost more CPU time and kernel overhead than they save, which is why 50 processes ran slower than 20.
 
-On a machine with more cores, the curve would keep dropping until the process count reached the core count, then flatten out in the same way.
+One more detail affects how well the work spreads out. Frames are not equal in cost: the deeper frames near the end of the zoom contain more of the detailed boundary of the set, so they need more iterations per pixel and take longer. Because the parent hands out a new frame as soon as any child finishes, a core that finished a cheap frame immediately picks up the next one. This keeps all the cores busy, which is why the speedup stays so close to linear up to 10 processes.
