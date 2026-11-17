@@ -1,0 +1,8 @@
+*.d
+*.o
+mandel
+mandelmovie
+*.jpg
+*.mpg
+# the final movie is kept in the repo for grading
+!mandel.mpg
