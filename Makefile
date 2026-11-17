@@ -1,7 +1,7 @@
 # Makefile
 # Name: Jim Luzano-Belfield
 # Assignment: Lab 11 - Multiprocessing
-# Section: CPE-2600-<SECTION>
+# Section: CPE-2600-111
 #
 # Builds two programs:
 #   mandel       - renders one Mandelbrot image (provided program)

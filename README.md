@@ -1,7 +1,7 @@
 # Lab 11 – Multiprocessing
 
 **Name:** Jim Luzano-Belfield
-**Course:** CPE-2600 Systems Programming, Section <SECTION>
+**Course:** CPE-2600 Systems Programming, Section 111
 **Assignment:** Lab 11 – Multiprocessing
 
 ## Overview

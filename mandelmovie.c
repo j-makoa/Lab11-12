@@ -2,7 +2,7 @@
 //  mandelmovie.c
 //  Name: Jim Luzano-Belfield
 //  Assignment: Lab 11 - Multiprocessing
-//  Section: CPE-2600-<SECTION>
+//  Section: CPE-2600-151
 //
 //  Generates the frames of a Mandelbrot "fly-in" movie by running the
 //  provided mandel program once per frame. Each frame is rendered by its
